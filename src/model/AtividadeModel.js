@@ -103,7 +103,7 @@ export class AtividadeModel
     }
     setHoras(horas)
     {
-        if(horas === null || horas === undefined || isNaN(horas) || horas < 0)
+        if(!horas || isNaN(horas) || horas < 0)
         {
             throw new Error("As horas devem ser um numero maior ou igual a zero.");
         }
@@ -115,7 +115,7 @@ export class AtividadeModel
     }
     setQtdEstudos(qtdestudos)
     {
-        if(qtdestudos === null || qtdestudos === undefined || isNaN(qtdestudos) || qtdestudos < 0)
+        if(!qtdestudos || isNaN(qtdestudos) || qtdestudos < 0)
         {
             throw new Error("A quantidade de estudos deve ser um numero maior ou igual a zero.");
         }
