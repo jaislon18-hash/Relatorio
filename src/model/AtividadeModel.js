@@ -26,7 +26,7 @@ export class AtividadeModel
 
     getClassificacao()
     {
-        return this.clasificacao;
+        return this.classificacao;
     }
     setClassificacao(classificacao)
     {
