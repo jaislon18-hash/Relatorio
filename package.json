@@ -1,0 +1,25 @@
+{
+  "name": "relatorios",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaislon18-hash/Relatorio.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/jaislon18-hash/Relatorio/issues"
+  },
+  "homepage": "https://github.com/jaislon18-hash/Relatorio#readme",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "mysql2": "^3.16.0"
+  }
+}
