@@ -1,69 +1,87 @@
-export class EmpresaModel
+export class EmpresaModel 
 {
-    constructor(nome, cidade, estado)
+    constructor (id, nome, cidade, estado)
     {
+        this.setId(id);
         this.setNome(nome);
         this.setCidade(cidade);
         this.setEstado(estado);
     }
 
-    getNome()
+    // Getters e setters
+    getId ()
+    {
+        return this.id;
+    }
+
+    setId (id)
+    {
+        this.id = id ? id : null;
+    }
+
+    getNome ()
     {
         return this.nome;
     }
 
-    setNome(nome)
+    setNome (nome)
     {
-            if(!nome || nome.trim() ==="")
+        /**
+         * 1 == 1 -> true
+         * 1 == "1" -> true
+         * 1 === 1 -> true
+         * 1 === "1" -> false
+         */
+        if (!nome || nome.trim() === "")
         {
-            throw new Error("O nome da empresa é obrigatorio.");
-        } 
-
-            if (nome.length > 80)
-        {
-            throw new Error("O nome da empresa nao pode ter mais de 80 caracteres.");
+            throw new Error("O nome da empresa é obrigatório.");
         }
+
+        if (nome.length > 80)
+        {
+            throw new Error("O nome da empresa não pode ultrapassar 80 caracteres.");
+        }
+
         this.nome = nome;
     }
 
-    getCidade()
+    getCidade ()
     {
         return this.cidade;
     }
 
-    setCidade(cidade)
+    setCidade (cidade)
     {
-            if(cidade.length > 45)
+        if (!cidade || cidade.trim() === "")
         {
-            throw new Error("O nome da cidade não pode ter mais de 45 caracteres.");
-        } 
+            throw new Error("O nome da cidade é obrigatório.");
+        }
 
-            if(!cidade || cidade.trim() ==="")
+        if (cidade.length > 45)
         {
-            throw new Error("O nome da cidade é obrigatorio.");
-        }  
+            throw new Error("O nome da cidade não pode ultrapassar 45 caracteres.");
+        }
 
         this.cidade = cidade;
     }
-    
 
-    getEstado()
+    getEstado ()
     {
         return this.estado;
     }
 
-    setEstado(estado)
+    setEstado (estado)
     {
-            if(estado.length > 45)
+        if (!estado || estado.trim() === "")
         {
-            throw new Error("O nome do estado não pode ter mais de 45 caracteres");
+            throw new Error("O nome do estado é obrigatório.");
         }
-            if(!estado || estado.trim() ==="")
 
+        if (estado.length > 45)
         {
-            throw new Error("O nome do estado é obrigatorio.");
-        } 
-        
+            throw new Error("O nome do estado não pode ultrapassar 45 caracteres.");
+        }
+
         this.estado = estado;
     }
 }
