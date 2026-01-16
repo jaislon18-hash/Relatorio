@@ -4,66 +4,84 @@ import { EmpresaModel } from '../model/EmpresaModel.js';
 export class EmpresaController
 {
     /**
-     * Lista todas as empresas cadastradas.
+     * Renderiza a lista de empresas.
      * 
-     * Método GET: /empresas
+     * GET: /empresas
      */
     async listar (req, res)
     {
-        // Instanciamos o DAO para acessar o banco
         const dao = new EmpresaDAO();
 
         try
         {
             const lista = await dao.buscarTodos();
             
-            // Retornamos a lista com status 200 (OK)
-            res.status(200).json(lista);
+            res.render('empresa/listar', { 
+                lista: lista,
+                erro: null 
+            });
         }
         catch (erro)
-        { 
+        {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao listar empresas.", detalhe: erro.message });
+            res.render('empresa/listar', { 
+                lista: [], 
+                erro: "Erro ao carregar dados: " + erro.message 
+            });
         }
     }
 
     /**
-     * Busca uma empresa específica pelo ID.
+     * Renderiza o formulário de criação.
      * 
-     * Método GET: /empresas/:id
+     * GET: /empresas/novo
      */
-    async buscarPorId (req, res)
+    async formCriar (req, res)
+    {
+        res.render('empresa/form', {
+            acao: 'Criar',
+            rota: '/empresas',
+            empresa: null,
+            erro: null
+        });
+    }
+
+    /**
+     * Renderiza o formulário de edição.
+     * 
+     * GET: /empresas/editar/:id
+     */
+    async formEditar (req, res)
     {
         const dao = new EmpresaDAO();
-        
         try
         {
-            // O ID vem pela URL (ex: /empresas/1), então pegamos do req.params
             const id = req.params.id;
-
             const empresa = await dao.buscarPorId(id);
 
-            if (!empresa)
+            if (!empresa) 
             {
-                // Se não achou, retornamos 404 (Not Found)
-                return res.status(404).json({ mensagem: "Empresa não encontrada." });
+                return res.redirect('/empresas');
             }
 
-            res.status(200).json(empresa);
+            res.render('empresa/form', {
+                acao: 'Editar',
+                rota: `/empresas/${id}?method=PUT`,
+                empresa: empresa,
+                erro: null
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao buscar a empresa.", detalhe: erro.message });
+            res.redirect('/empresas');
         }
     }
 
     /**
-     * Cadastra uma nova empresa.
+     * Processa a criação.
      * 
-     * Método POST: /empresas
+     * POST: /empresas
      */
     async criar (req, res)
     {
@@ -71,70 +89,60 @@ export class EmpresaController
 
         try
         {
-            // Desestruturação: pegamos os dados que vieram no corpo da requisição (JSON)
             const { nome, cidade, estado } = req.body;
-
-            // Criamos o Model. 
-            // Atenção: Passamos null no ID porque o banco vai gerar isso pra gente (Auto Increment).
-            // Se os dados estiverem errados (ex: nome vazio), o Model vai disparar um erro aqui
             const novaEmpresa = new EmpresaModel(null, nome, cidade, estado);
 
             await dao.criar(novaEmpresa);
 
-            // Retornamos 201 (Created) e o objeto criado (agora com ID)
-            res.status(201).json({ 
-                mensagem: "Empresa criada com sucesso!", 
-                dados: novaEmpresa 
-            });
-
+            res.redirect('/empresas');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(400).json({ mensagem: "Erro ao cadastrar empresa.", detalhe: erro.message });
+            res.render('empresa/form', {
+                acao: 'Criar',
+                rota: '/empresas',
+                empresa: { nome: req.body.nome, cidade: req.body.cidade, estado: req.body.estado },
+                erro: "Erro ao cadastrar: " + erro.message
+            });
         }
     }
 
     /**
-     * Atualiza os dados de uma empresa.
+     * Processa a atualização.
      * 
-     * Método PUT: /empresas/:id
+     * PUT: /empresas/:id
      */
     async atualizar (req, res)
     {
         const dao = new EmpresaDAO();
+        const id = req.params.id;
 
         try
         {
-            // Pegamos o ID da URL e os novos dados do Body
-            const id = req.params.id;
             const { nome, cidade, estado } = req.body;
-
-            // Instanciamos o Model já com o ID para fazer a validação completa
             const empresaAtualizada = new EmpresaModel(id, nome, cidade, estado);
 
-            const sucesso = await dao.atualizar(empresaAtualizada);
+            await dao.atualizar(empresaAtualizada);
 
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Empresa não encontrada para atualização." });
-            }
-
-            res.status(200).json({ mensagem: "Empresa atualizada com sucesso!" });
+            res.redirect('/empresas');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(400).json({ mensagem: "Erro ao atualizar empresa.", detalhe: erro.message });
+            res.render('empresa/form', {
+                acao: 'Editar',
+                rota: `/empresas/${id}?method=PUT`,
+                empresa: { id: id, nome: req.body.nome, cidade: req.body.cidade, estado: req.body.estado },
+                erro: "Erro ao atualizar: " + erro.message
+            });
         }
     }
 
     /**
-     * Exclui uma empresa.
+     * Apaga uma empresa.
      * 
-     * Método DELETE: /empresas/:id
+     * DELETE: /empresas/:id
      */
     async apagar (req, res)
     {
@@ -143,21 +151,14 @@ export class EmpresaController
         try
         {
             const id = req.params.id;
+            await dao.apagar(id);
 
-            const sucesso = await dao.apagar(id);
-
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Empresa não encontrada para exclusão." });
-            }
-
-            res.status(200).json({ mensagem: "Empresa excluída com sucesso!" });
+            res.redirect('/empresas');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao excluir empresa. Verifique se há usuários vinculados.", detalhe: erro.message });
+            res.redirect('/empresas');
         }
     }
 }

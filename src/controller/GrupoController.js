@@ -1,12 +1,13 @@
 import { GrupoDAO } from '../database/DAO/GrupoDAO.js';
 import { GrupoModel } from '../model/GrupoModel.js';
+import { EmpresaDAO } from '../database/DAO/EmpresaDAO.js'; // Necessário para o <select> de empresas
 
 export class GrupoController
 {
     /**
-     * Lista TODOS os grupos do sistema.
+     * Renderiza a lista de grupos.
      * 
-     * Método GET: /grupos
+     * GET: /grupos
      */
     async listar (req, res)
     {
@@ -15,84 +16,87 @@ export class GrupoController
         try
         {
             const lista = await dao.buscarTodos();
-
-            res.status(200).json(lista);
-
-        }
-        catch (erro)
-        {
-            console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao listar grupos.", detalhe: erro.message });
-
-        }
-    }
-
-    /**
-     * Lista apenas os grupos de uma EMPRESA específica.
-     * 
-     * Método GET: /grupos/empresa/:idEmpresa
-     */
-    async listarPorEmpresa (req, res)
-    {
-        const dao = new GrupoDAO();
-
-        try
-        {
-            const idEmpresa = req.params.idEmpresa;
             
-            const lista = await dao.buscarPorEmpresa(idEmpresa);
-
-            res.status(200).json(lista);
-
+            res.render('grupo/listar', { 
+                lista: lista,
+                erro: null 
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao buscar grupos da empresa.", detalhe: erro.message });
-
+            res.render('grupo/listar', { 
+                lista: [], 
+                erro: "Erro ao carregar dados: " + erro.message 
+            });
         }
     }
 
     /**
-     * Busca um grupo específico.
-     * Precisamos de DUAS chaves aqui.
+     * Renderiza o formulário de criação.
      * 
-     * Método GET: /grupos/:idEmpresa/:numero
+     * GET: /grupos/novo
      */
-    async buscarPorChave (req, res)
+    async formCriar (req, res)
     {
-        const dao = new GrupoDAO();
+        try 
+        {
+            const empresaDAO = new EmpresaDAO();
+            const empresas = await empresaDAO.buscarTodos();
 
+            res.render('grupo/form', {
+                acao: 'Criar',
+                rota: '/grupos',
+                grupo: null,
+                empresas: empresas, 
+                erro: null
+            });
+        }
+        catch (erro)
+        {
+            res.redirect('/grupos');
+        }
+    }
+
+    /**
+     * Renderiza o formulário de edição.
+     * 
+     * GET: /grupos/editar/:idEmpresa/:numero
+     */
+    async formEditar (req, res)
+    {
         try
         {
-            // Pegamos os dois parâmetros da URL
             const idEmpresa = req.params.idEmpresa;
             const numero = req.params.numero;
 
+            const dao = new GrupoDAO();
+            const empresaDAO = new EmpresaDAO();
+
             const grupo = await dao.buscarComposta(idEmpresa, numero);
+            const empresas = await empresaDAO.buscarTodos();
 
-            if (!grupo)
-            {
-                return res.status(404).json({ mensagem: "Grupo não encontrado." });
-            }
+            if (!grupo) return res.redirect('/grupos');
 
-            res.status(200).json(grupo);
-
+            res.render('grupo/form', {
+                acao: 'Editar',
+                rota: `/grupos/${idEmpresa}/${numero}?method=PUT`,
+                grupo: grupo,
+                empresas: empresas,
+                erro: null
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao buscar grupo.", detalhe: erro.message });
+            res.redirect('/grupos');
         }
     }
 
     /**
-     * Cria um novo grupo.
+     * Processa a criação.
      * 
-     * Método POST: /grupos
+     * POST: /grupos
      */
     async criar (req, res)
     {
@@ -100,75 +104,66 @@ export class GrupoController
 
         try
         {
-            // O número do grupo não é automático, usuário define
             const { empresa, numero, nome } = req.body;
-
             const novoGrupo = new GrupoModel(empresa, numero, nome);
 
             await dao.criar(novoGrupo);
 
-            res.status(201).json({ 
-                mensagem: "Grupo criado com sucesso!", 
-                dados: novoGrupo 
-            });
-
+            res.redirect('/grupos');
         }
         catch (erro)
         {
             console.log(erro);
             
-            // Tratamento específico para chave duplicada (Ex: Já existe Grupo 10 na Empresa 1)
-            if (erro.code == 'ER_DUP_ENTRY')
-            {
-                return res.status(409).json({ mensagem: "Já existe um grupo com este número nesta empresa." });
-            }
+            const empresaDAO = new EmpresaDAO();
+            const empresas = await empresaDAO.buscarTodos();
 
-            res.status(400).json({ mensagem: "Erro ao cadastrar grupo.", detalhe: erro.message });
+            let msg = "Erro ao cadastrar: " + erro.message;
+            if (erro.code == 'ER_DUP_ENTRY') msg = "Já existe um Grupo com este número nesta Empresa.";
+
+            res.render('grupo/form', {
+                acao: 'Criar',
+                rota: '/grupos',
+                grupo: { empresa: req.body.empresa, numero: req.body.numero, nome: req.body.nome },
+                empresas: empresas,
+                erro: msg
+            });
         }
     }
 
     /**
-     * Atualiza o nome do grupo.
-     * As chaves (empresa e numero) vêm na URL, o nome vem no corpo.
+     * Processa a atualização.
      * 
-     * Método PUT: /grupos/:idEmpresa/:numero
+     * PUT: /grupos/:idEmpresa/:numero
      */
     async atualizar (req, res)
     {
         const dao = new GrupoDAO();
 
+        const idEmpresa = req.params.idEmpresa;
+        const numero = req.params.numero;
+
         try
         {
-            const idEmpresa = req.params.idEmpresa;
-            const numero = req.params.numero;
-            
             const { nome } = req.body;
-
-            // Instanciamos o model para validar tudo junto
+            
             const grupoAtualizado = new GrupoModel(idEmpresa, numero, nome);
 
-            const sucesso = await dao.atualizar(grupoAtualizado);
+            await dao.atualizar(grupoAtualizado);
 
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Grupo não encontrado para atualização." });
-            }
-
-            res.status(200).json({ mensagem: "Grupo atualizado com sucesso!" });
-
+            res.redirect('/grupos');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(400).json({ mensagem: "Erro ao atualizar grupo.", detalhe: erro.message });
+            res.send("Erro ao atualizar: " + erro.message); 
         }
     }
 
     /**
      * Apaga um grupo.
      * 
-     * Método DELETE: /grupos/:idEmpresa/:numero
+     * DELETE: /grupos/:idEmpresa/:numero
      */
     async apagar (req, res)
     {
@@ -179,27 +174,14 @@ export class GrupoController
             const idEmpresa = req.params.idEmpresa;
             const numero = req.params.numero;
 
-            const sucesso = await dao.apagar(idEmpresa, numero);
+            await dao.apagar(idEmpresa, numero);
 
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Grupo não encontrado." });
-            }
-
-            res.status(200).json({ mensagem: "Grupo excluído com sucesso!" });
-
+            res.redirect('/grupos');
         }
         catch (erro)
         {
             console.log(erro);
-
-            // Verifica se tem atividades vinculadas antes de deixar apagar
-            if (erro.code && erro.code.includes("ROW_IS_REFERENCED"))
-            {
-                return res.status(409).json({ mensagem: "Não é possível excluir este grupo pois existem atividades vinculadas a ele." });
-            }
-            
-            res.status(500).json({ mensagem: "Erro ao excluir grupo.", detalhe: erro.message });
+            res.redirect('/grupos');
         }
     }
 }

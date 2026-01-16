@@ -4,9 +4,9 @@ import { ClassificacaoModel } from '../model/ClassificacaoModel.js';
 export class ClassificacaoController
 {
     /**
-     * Lista todas as classificações (Tipos de Atividade).
+     * Renderiza a lista de classificações.
      * 
-     * Método GET: /classificacoes
+     * GET: /classificacoes
      */
     async listar (req, res)
     {
@@ -16,51 +16,72 @@ export class ClassificacaoController
         {
             const lista = await dao.buscarTodos();
             
-            res.status(200).json(lista);
-
+            res.render('classificacao/listar', { 
+                lista: lista,
+                erro: null 
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao carregar as classificações.", detalhe: erro.message });
+            res.render('classificacao/listar', { 
+                lista: [], 
+                erro: "Erro ao carregar dados: " + erro.message 
+            });
         }
     }
 
     /**
-     * Busca uma classificação pelo ID.
+     * Renderiza o formulário de criação.
      * 
-     * Método GET: /classificacoes/:id
+     * GET: /classificacoes/novo
      */
-    async buscarPorId (req, res)
+    async formCriar (req, res)
+    {
+        res.render('classificacao/form', {
+            acao: 'Criar',
+            rota: '/classificacoes',
+            classificacao: null,
+            erro: null
+        });
+    }
+
+    /**
+     * Renderiza o formulário de edição.
+     * 
+     * GET: /classificacoes/editar/:id
+     */
+    async formEditar (req, res)
     {
         const dao = new ClassificacaoDAO();
-         
         try
         {
             const id = req.params.id;
             const classificacao = await dao.buscarPorId(id);
 
-            if (!classificacao)
+            if (!classificacao) 
             {
-                return res.status(404).json({ mensagem: "Classificação não encontrada." });
+                return res.redirect('/classificacoes');
             }
 
-            res.status(200).json(classificacao);
-
+            res.render('classificacao/form', {
+                acao: 'Editar',
+                rota: `/classificacoes/${id}?method=PUT`,
+                classificacao: classificacao,
+                erro: null
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao buscar classificação.", detalhe: erro.message });
+            res.redirect('/classificacoes');
         }
     }
 
     /**
-     * Cria uma nova classificação.
+     * Processa a criação.
      * 
-     * Método POST: /classificacoes
+     * POST: /classificacoes
      */
     async criar (req, res)
     {
@@ -68,66 +89,60 @@ export class ClassificacaoController
 
         try
         {
-            // aqui só precisamos do nome, pois o ID é automático.
             const { nome } = req.body;
-
             const novaClassificacao = new ClassificacaoModel(null, nome);
 
             await dao.criar(novaClassificacao);
 
-            res.status(201).json({ 
-                mensagem: "Classificação criada com sucesso!", 
-                dados: novaClassificacao 
-            });
-
+            res.redirect('/classificacoes');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(400).json({ mensagem: "Erro ao cadastrar classificação.", detalhe: erro.message });
+            res.render('classificacao/form', {
+                acao: 'Criar',
+                rota: '/classificacoes',
+                classificacao: { nome: req.body.nome }, 
+                erro: "Erro ao cadastrar: " + erro.message
+            });
         }
     }
 
     /**
-     * Atualiza o nome da classificação.
+     * Processa a atualização.
      * 
-     * Método PUT: /classificacoes/:id
+     * PUT: /classificacoes/:id
      */
     async atualizar (req, res)
     {
         const dao = new ClassificacaoDAO();
+        const id = req.params.id;
 
         try
         {
-            const id = req.params.id;
-
             const { nome } = req.body;
-
             const classificacaoAtualizada = new ClassificacaoModel(id, nome);
 
-            const sucesso = await dao.atualizar(classificacaoAtualizada);
+            await dao.atualizar(classificacaoAtualizada);
 
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Classificação não encontrada." });
-            }
-
-            res.status(200).json({ mensagem: "Classificação atualizada com sucesso!" });
-
+            res.redirect('/classificacoes');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(400).json({ mensagem: "Erro ao atualizar.", detalhe: erro.message });
+            res.render('classificacao/form', {
+                acao: 'Editar',
+                rota: `/classificacoes/${id}?method=PUT`,
+                classificacao: { id: id, nome: req.body.nome },
+                erro: "Erro ao atualizar: " + erro.message
+            });
         }
     }
 
     /**
      * Apaga uma classificação.
      * 
-     * Método DELETE: /classificacoes/:id
+     * DELETE: /classificacoes/:id
      */
     async apagar (req, res)
     {
@@ -136,30 +151,14 @@ export class ClassificacaoController
         try
         {
             const id = req.params.id;
+            await dao.apagar(id);
 
-            const sucesso = await dao.apagar(id);
-
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Classificação não encontrada." });
-            }
-
-            res.status(200).json({ mensagem: "Classificação excluída com sucesso!" });
-
+            res.redirect('/classificacoes');
         }
         catch (erro)
         {
             console.log(erro);
-            
-            // o erro mais comum vai ser tentar apagar algo que já está em uso
-            // se o erro for relacionado a chave estrangeira (FK), avisamos o usuário
-            if (erro.code && erro.code.includes("ROW_IS_REFERENCED"))
-            {
-                return res.status(409).json({ mensagem: "Não é possível excluir esta classificação pois existem atividades vinculadas a ela." });
-            }
-
-            res.status(500).json({ mensagem: "Erro ao excluir classificação.", detalhe: erro.message });
-
+            res.redirect('/classificacoes');
         }
     }
 }

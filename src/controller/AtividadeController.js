@@ -1,12 +1,15 @@
 import { AtividadeDAO } from '../database/DAO/AtividadeDAO.js';
 import { AtividadeModel } from '../model/AtividadeModel.js';
+// Importamos os DAOs auxiliares para preencher os selects (combobox)
+import { ClassificacaoDAO } from '../database/DAO/ClassificacaoDAO.js';
+import { GrupoDAO } from '../database/DAO/GrupoDAO.js';
 
 export class AtividadeController
 {
     /**
-     * Lista todas as atividades registradas.
+     * Renderiza a lista de atividades.
      * 
-     * Método GET: /atividades
+     * GET: /atividades
      */
     async listar (req, res)
     {
@@ -16,54 +19,97 @@ export class AtividadeController
         {
             const lista = await dao.buscarTodos();
             
-            res.status(200).json(lista);
-
+            // Renderiza a view 'listar.ejs' passando os dados
+            res.render('atividade/listar', { 
+                lista: lista,
+                mensagem: null,
+                erro: null 
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao listar as atividades.", detalhe: erro.message });
-
+            res.render('atividade/listar', { 
+                lista: [], 
+                mensagem: null, 
+                erro: "Erro ao carregar dados: " + erro.message 
+            });
         }
     }
 
     /**
-     * Busca uma atividade específica pelo ID.
+     * Renderiza o formulário de criação.
      * 
-     * Método GET: /atividades/:id
+     * GET: /atividades/novo
      */
-    async buscarPorId (req, res)
+    async formCriar (req, res)
     {
-        const dao = new AtividadeDAO();
-        
+        try
+        {
+            const classificacaoDAO = new ClassificacaoDAO();
+            const grupoDAO = new GrupoDAO();
+
+            // Busca dados para popular os selects
+            const classificacoes = await classificacaoDAO.buscarTodos();
+            const grupos = await grupoDAO.buscarTodos();
+
+            res.render('atividade/form', {
+                acao: 'Criar',
+                rota: '/atividades', 
+                atividade: null,
+                classificacoes,
+                grupos,
+                erro: null
+            });
+        }
+        catch (erro)
+        {
+            console.log(erro);
+            res.redirect('/atividades');
+        }
+    }
+
+    /**
+     * Renderiza o formulário de edição.
+     * 
+     * GET: /atividades/editar/:id
+     */
+    async formEditar (req, res)
+    {
         try
         {
             const id = req.params.id;
-            
+            const dao = new AtividadeDAO();
+            const classificacaoDAO = new ClassificacaoDAO();
+            const grupoDAO = new GrupoDAO();
+
             const atividade = await dao.buscarPorId(id);
+            const classificacoes = await classificacaoDAO.buscarTodos();
+            const grupos = await grupoDAO.buscarTodos();
 
-            if (!atividade)
-            {
-                return res.status(404).json({ mensagem: "Atividade não encontrada." });
-            }
+            if (!atividade) return res.redirect('/atividades');
 
-            res.status(200).json(atividade);
-
+            res.render('atividade/form', {
+                acao: 'Editar',
+                // adicionamos ?method=PUT na URL da action (assista a aula 09 para entender o motivo)
+                rota: `/atividades/${id}?method=PUT`, 
+                atividade,
+                classificacoes,
+                grupos,
+                erro: null
+            });
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao buscar a atividade.", detalhe: erro.message });
-
+            res.redirect('/atividades');
         }
     }
 
     /**
-     * Registra uma nova atividade de produtividade.
+     * Processa a criação (Form Action).
      * 
-     * Método POST: /atividades
+     * POST: /atividades
      */
     async criar (req, res)
     {
@@ -71,17 +117,10 @@ export class AtividadeController
 
         try
         {
-            const { 
-                classificacao, 
-                grupoEmpresa, 
-                grupoNumero, 
-                mes, 
-                ano, 
-                participou, 
-                horas, 
-                qtdestudos, 
-                observacao 
-            } = req.body;
+            const { classificacao, grupoComposto, mes, ano, participou, horas, qtdestudos, observacao } = req.body;
+
+            // Lógica para separar o ID composto do Grupo (ex: "1|10" -> empresa:1, numero:10)
+            const [grupoEmpresa, grupoNumero] = grupoComposto.split('|');
 
             const novaAtividade = new AtividadeModel(
                 null, 
@@ -90,7 +129,8 @@ export class AtividadeController
                 grupoNumero, 
                 mes, 
                 ano, 
-                participou, 
+                // HTML envia 'on' se marcado, ou undefined se não.
+                participou ? 1 : 0, 
                 horas, 
                 qtdestudos, 
                 observacao
@@ -98,30 +138,19 @@ export class AtividadeController
 
             await dao.criar(novaAtividade);
 
-            res.status(201).json({ 
-                mensagem: "Atividade registrada com sucesso!", 
-                dados: novaAtividade 
-            });
-
+            res.redirect('/atividades');
         }
         catch (erro)
         {
             console.log(erro);
-            
-            if (erro.code && erro.code.includes("NO_REFERENCED_ROW"))
-            {
-                return res.status(400).json({ mensagem: "Erro de Vínculo: A Classificação ou o Grupo informado não existem." });
-            }
-
-            res.status(400).json({ mensagem: "Erro ao registrar atividade.", detalhe: erro.message });
-
+            res.status(400).send("Erro ao cadastrar: " + erro.message);
         }
     }
 
     /**
-     * Atualiza os dados de uma atividade existente.
+     * Processa a atualização.
      * 
-     * Método PUT: /atividades/:id
+     * PUT: /atividades/:id
      */
     async atualizar (req, res)
     {
@@ -130,18 +159,9 @@ export class AtividadeController
         try
         {
             const id = req.params.id;
-            
-            const { 
-                classificacao, 
-                grupoEmpresa, 
-                grupoNumero, 
-                mes, 
-                ano, 
-                participou, 
-                horas, 
-                qtdestudos, 
-                observacao 
-            } = req.body;
+            const { classificacao, grupoComposto, mes, ano, participou, horas, qtdestudos, observacao } = req.body;
+
+            const [grupoEmpresa, grupoNumero] = grupoComposto.split('|');
 
             const atividadeAtualizada = new AtividadeModel(
                 id, 
@@ -150,60 +170,42 @@ export class AtividadeController
                 grupoNumero, 
                 mes, 
                 ano, 
-                participou, 
+                participou ? 1 : 0, 
                 horas, 
                 qtdestudos, 
                 observacao
             );
 
-            const sucesso = await dao.atualizar(atividadeAtualizada);
+            await dao.atualizar(atividadeAtualizada);
 
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Atividade não encontrada para atualização." });
-            }
-
-            res.status(200).json({ mensagem: "Atividade atualizada com sucesso!" });
-
+            res.redirect('/atividades');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(400).json({ mensagem: "Erro ao atualizar atividade.", detalhe: erro.message });
-
+            res.send("Erro ao atualizar: " + erro.message);
         }
     }
 
     /**
-     * Exclui um registro de atividade.
+     * Exclui um registro.
      * 
-     * Método DELETE: /atividades/:id
+     * DELETE: /atividades/:id
      */
     async apagar (req, res)
     {
         const dao = new AtividadeDAO();
-        
         try
         {
             const id = req.params.id;
-
-            const sucesso = await dao.apagar(id);
-
-            if (!sucesso)
-            {
-                return res.status(404).json({ mensagem: "Atividade não encontrada." });
-            }
-
-            res.status(200).json({ mensagem: "Atividade excluída com sucesso!" });
-
+            await dao.apagar(id);
+            
+            res.redirect('/atividades');
         }
         catch (erro)
         {
             console.log(erro);
-
-            res.status(500).json({ mensagem: "Erro ao excluir atividade.", detalhe: erro.message });
-
+            res.redirect('/atividades');
         }
     }
 }
