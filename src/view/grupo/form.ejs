@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <title><%= acao %> Grupo</title>
+</head>
+<body>
+
+    <h1><%= acao %> Grupo</h1>
+
+    <a href="/grupos">Voltar para a Lista</a>
+    <hr>
+
+    <% if (erro) { %>
+        <p style="color: red;"><%= erro %></p>
+    <% } %>
+
+    <form action="<%= rota %>" method="POST">
+
+        <label>Empresa:</label><br>
+        <select name="empresa" required <%= acao === 'Editar' ? 'disabled' : '' %>>
+            <option value="">Selecione...</option>
+            <% empresas.forEach(e => { %>
+                <option value="<%= e.id %>" <%= grupo && grupo.empresa == e.id ? 'selected' : '' %>>
+                    <%= e.nome %> (ID: <%= e.id %>)
+                </option>
+            <% }) %>
+        </select>
+        <% if (acao === 'Editar') { %> 
+            <small>(Não editável)</small> 
+        <% } %>
+        <br><br>
+
+        <label>Número do Grupo:</label><br>
+        <input type="number" name="numero" value="<%= grupo ? grupo.numero : '' %>" required 
+               <%= acao === 'Editar' ? 'readonly style="background-color: #eee;"' : '' %>>
+        <br><br>
+
+        <label>Nome do Grupo:</label><br>
+        <input type="text" name="nome" value="<%= grupo ? grupo.nome : '' %>" required maxlength="45">
+        <br><br>
+
+        <button type="submit">Salvar Dados</button>
+
+    </form>
+
+</body>
+</html>

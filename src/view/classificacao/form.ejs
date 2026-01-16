@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <title><%= acao %> Classificação</title>
+</head>
+<body>
+
+    <h1><%= acao %> Classificação</h1>
+
+    <a href="/classificacoes">Voltar para a Lista</a>
+    <hr>
+
+    <% if (erro) { %>
+        <p style="color: red;"><%= erro %></p>
+    <% } %>
+
+    <form action="<%= rota %>" method="POST">
+
+        <label>Nome da Classificação:</label><br>
+        <input type="text" name="nome" value="<%= classificacao ? classificacao.nome : '' %>" required maxlength="45">
+        <br><br>
+
+        <button type="submit">Salvar Dados</button>
+
+    </form>
+
+</body>
+</html>

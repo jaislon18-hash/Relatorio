@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <title><%= acao %> Atividade</title>
+</head>
+<body>
+
+    <h1><%= acao %> Atividade</h1>
+
+    <a href="/atividades">Voltar para a Lista</a>
+    <hr>
+
+    <% if (erro) { %>
+        <p style="color: red;"><%= erro %></p>
+    <% } %>
+
+    <form action="<%= rota %>" method="POST">
+
+        <label>Mês:</label><br>
+        <select name="mes" required>
+            <option value="">Selecione...</option>
+            <% ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].forEach(m => { %>
+                <option value="<%= m %>" <%= atividade && atividade.mes === m ? 'selected' : '' %>>
+                    <%= m %>
+                </option>
+            <% }) %>
+        </select>
+        <br><br>
+
+        <label>Ano:</label><br>
+        <input type="number" name="ano" value="<%= atividade ? atividade.ano : 2024 %>" required>
+        <br><br>
+
+        <label>Classificação:</label><br>
+        <select name="classificacao" required>
+            <option value="">Selecione...</option>
+            <% classificacoes.forEach(c => { %>
+                <option value="<%= c.id %>" <%= atividade && atividade.classificacao == c.id ? 'selected' : '' %>>
+                    <%= c.nome %>
+                </option>
+            <% }) %>
+        </select>
+        <br><br>
+
+        <label>Grupo:</label><br>
+        <select name="grupoComposto" required>
+            <option value="">Selecione...</option>
+            <% grupos.forEach(g => { %>
+                <option value="<%= g.empresa %>|<%= g.numero %>" 
+                    <%= atividade && atividade.grupoEmpresa == g.empresa && atividade.grupoNumero == g.numero ? 'selected' : '' %>>
+                    <%= g.nome %>
+                </option>
+            <% }) %>
+        </select>
+        <br><br>
+
+        <label>Horas:</label><br>
+        <input type="number" step="0.1" name="horas" value="<%= atividade ? atividade.horas : '' %>">
+        <br><br>
+
+        <label>Qtd. Estudos:</label><br>
+        <input type="number" name="qtdestudos" value="<%= atividade ? atividade.qtdestudos : '' %>">
+        <br><br>
+
+        <label>
+            <input type="checkbox" name="participou" <%= atividade && atividade.participou == 1 ? 'checked' : '' %>>
+            Participou Efetivamente?
+        </label>
+        <br><br>
+
+        <label>Observação:</label><br>
+        <textarea name="observacao" rows="3" cols="30"><%= atividade ? atividade.observacao : '' %></textarea>
+        <br><br>
+
+        <button type="submit">Salvar Dados</button>
+
+    </form>
+
+</body>
+</html>

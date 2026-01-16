@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Empresas</title>
+</head>
+<body>
+
+    <h1>Gestão de Empresas</h1>
+
+    <p>
+        <a href="/empresas/novo">[ + ] Nova Empresa</a>
+    </p>
+    <p>
+        <a href="/atividades">« Voltar para Atividades</a>
+    </p>
+
+    <% if (erro) { %>
+        <p style="color: red;">Erro: <%= erro %></p>
+    <% } %>
+
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Cidade</th>
+                <th>Estado</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (!lista || lista.length === 0) { %>
+                <tr>
+                    <td colspan="5">Nenhuma empresa registada.</td>
+                </tr>
+            <% } else { %>
+                
+                <% lista.forEach(function(item) { %>
+                    <tr>
+                        <td><%= item.id %></td>
+                        <td><%= item.nome %></td>
+                        <td><%= item.cidade %></td>
+                        <td><%= item.estado %></td>
+                        <td>
+                            <a href="/empresas/editar/<%= item.id %>">Editar</a>
+
+                            <form action="/empresas/<%= item.id %>?method=DELETE" method="POST" style="display:inline;">
+                                <button type="submit" onclick="return confirm('Tem a certeza que deseja excluir esta empresa?');">
+                                    Excluir
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }); %>
+
+            <% } %>
+        </tbody>
+    </table>
+
+</body>
+</html>
